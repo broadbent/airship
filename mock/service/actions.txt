@@ -1,0 +1,5 @@
+call,http://localhost:7070/auction/timeslot/live
+wait,10
+call,http://localhost:7070/auction/timeslot/live
+wait,10
+call,http://localhost:7070/auction/timeslot/live
