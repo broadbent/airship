@@ -24,3 +24,6 @@ _testmain.go
 *.prof
 
 .DS_Store
+
+# Bolt DB persistent files
+*.db
