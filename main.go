@@ -2,25 +2,21 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
 	"time"
 
-	"github.com/broadbent/airship/db"
+	"github.com/broadbent/airship/auctioneer"
+	"gopkg.in/mgo.v2"
 )
 
-var dbFile = flag.String("db", "/tmp/airship.db", "Path to the BoltDB file")
-var buckets = []string{"api", "transaction", "resource"}
+var mongoURL = "localhost:27017"
+var interval, _ = time.ParseDuration("60s")
 
 func main() {
 	flag.Parse()
 
-	var db db.DB
-	if err := db.Open(*dbFile, 0600, buckets); err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	session, _ := mgo.Dial(mongoURL)
 
-	timestamp := db.Write("log", "", "/test/test", true)
+	go auctioneer.Serve(session)
+	auctioneer.Ticker(interval)
 
 }
