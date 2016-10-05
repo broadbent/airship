@@ -14,7 +14,12 @@ var interval, _ = time.ParseDuration("60s")
 func main() {
 	flag.Parse()
 
-	session, _ := mgo.Dial(mongoURL)
+	session, err := mgo.Dial(mongoURL)
+	if err != nil {
+		panic(err)
+	}
+
+	defer session.Close()
 
 	go auctioneer.Serve(session)
 	auctioneer.Ticker(interval)

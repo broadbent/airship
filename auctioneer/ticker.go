@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/zenazn/goji/web"
+	"gopkg.in/mgo.v2"
 )
 
 func Ticker(interval time.Duration) {
@@ -26,6 +27,13 @@ func Ticker(interval time.Duration) {
 		case <-death:
 			return
 		}
+	}
+}
+
+func dropDatabase(s *mgo.Session) {
+	err := s.DB("airship").DropDatabase()
+	if err != nil {
+		panic(err)
 	}
 }
 

@@ -1,7 +1,7 @@
 package auctioneer
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
 	"net/http"
 
@@ -22,7 +22,7 @@ type Route struct {
 type Routes []Route
 
 type appContext struct {
-	db *mgo.Session
+	session *mgo.Session
 }
 
 type appHandler struct {
@@ -47,7 +47,10 @@ func (ah appHandler) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request)
 
 func Serve(s *mgo.Session) {
 
-	context := &appContext{db: s}
+	dropDatabase(s)
+	ensureUserIndex(s)
+
+	context := &appContext{session: s}
 
 	r := web.New()
 
@@ -55,21 +58,12 @@ func Serve(s *mgo.Session) {
 		switch route.Method {
 		case "Get", "get", "GET":
 			r.Get(route.Pattern, appHandler{context, route.HandlerFunc})
-			fmt.Println("GET")
 		case "Post", "post", "POST":
 			r.Post(route.Pattern, appHandler{context, route.HandlerFunc})
-			fmt.Println("POST")
 		}
-		fmt.Println(route.Pattern)
 	}
 
 	graceful.ListenAndServe(":8080", r)
-
-	// 	router.
-	// 		Methods(route.Method).
-	// 		Path(route.Pattern).
-	// 		Name(route.Name).
-	// 		Handler(handler)
 }
 
 var routes = Routes{
@@ -94,49 +88,49 @@ var routes = Routes{
 	Route{
 		"AddBalance",
 		"POST",
-		"/user/balance/add/{userId}",
+		"/user/balance/add",
 		addBalance,
 	},
 	Route{
 		"DeductBalance",
 		"POST",
-		"/user/balance/deduct/{userId}",
+		"/user/balance/deduct",
 		deductBalance,
 	},
 	Route{
 		"DescribeUser",
 		"GET",
-		"/user/{userId}",
+		"/user/:userId",
 		describeUser,
 	},
 	Route{
 		"ListBids",
 		"GET",
-		"/user/bid/all/{userId}",
+		"/user/bid/all/:userId",
 		listBids,
 	},
 	Route{
 		"ListAcceptedBids",
 		"GET",
-		"/user/bid/accepted/{userId}",
+		"/user/bid/accepted/:userId",
 		listAcceptedBids,
 	},
 	Route{
 		"ListRejectedBids",
 		"GET",
-		"/user/bid/rejected/{userId}",
+		"/user/bid/rejected/:userId",
 		listRejectedBids,
 	},
 	Route{
 		"ListWonAuctions",
 		"GET",
-		"/user/auction/won/{userId}",
+		"/user/auction/won/:userId",
 		listWonAuctions,
 	},
 	Route{
 		"ListLostAuctions",
 		"GET",
-		"/user/auction/lost/{userId}",
+		"/user/auction/lost/:userId",
 		listLostAuctions,
 	},
 	Route{
@@ -154,19 +148,19 @@ var routes = Routes{
 	Route{
 		"DescribeAuction",
 		"GET",
-		"/auction/describe/{auctionId}",
+		"/auction/describe/:auctionId",
 		describeAuction,
 	},
 	Route{
 		"Index",
 		"POST",
-		"/auction/bid/{auctionId}",
+		"/auction/bid/:auctionId",
 		placeBid,
 	},
 	Route{
 		"Provision",
 		"POST",
-		"/auction/provision/{auctiontId}",
+		"/auction/provision/:auctiontId",
 		provision,
 	},
 }
