@@ -12,6 +12,9 @@ import (
 	"net/http"
 )
 
+var database = "airship"
+var collection = "user"
+
 type User struct {
 	Name    string `json:"name,omitempty"`
 	UserId  string `json:"userid,omitempty"`
@@ -69,7 +72,7 @@ func addUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (in
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
 
-	col := a.session.DB("airship").C("user")
+	col := a.session.DB(database).C(collection)
 
 	user.UserId = xid.New().String()
 
@@ -83,7 +86,7 @@ func addUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (in
 }
 
 func removeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	col := a.session.DB("airship").C("user")
+	col := a.session.DB(database).C(collection)
 
 	user := bson.M{"userid": c.URLParams["userId"]}
 
@@ -109,7 +112,7 @@ func changeBalance(col *mgo.Collection, user User, balance int) {
 func addBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
 	var user User
 
-	col := a.session.DB("airship").C("user")
+	col := a.session.DB(database).C(collection)
 
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
@@ -122,7 +125,7 @@ func addBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) 
 func deductBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
 	var user User
 
-	col := a.session.DB("airship").C("user")
+	col := a.session.DB(database).C(collection)
 
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
@@ -133,7 +136,7 @@ func deductBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Reques
 }
 
 func describeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	col := a.session.DB("airship").C("user")
+	col := a.session.DB(database).C(collection)
 
 	user := bson.M{"userid": c.URLParams["userId"]}
 
