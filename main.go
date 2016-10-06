@@ -9,7 +9,7 @@ import (
 )
 
 var mongoURL = "localhost:27017"
-var interval, _ = time.ParseDuration("60s")
+var interval, _ = time.ParseDuration("10m")
 
 func main() {
 	flag.Parse()
@@ -22,6 +22,6 @@ func main() {
 	defer session.Close()
 
 	go auctioneer.Serve(session)
-	auctioneer.Ticker(interval)
+	auctioneer.Ticker(interval, session)
 
 }

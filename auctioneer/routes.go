@@ -49,6 +49,7 @@ func Serve(s *mgo.Session) {
 
 	dropDatabase(s)
 	ensureUserIndex(s)
+	ensureAuctionIndex(s)
 
 	context := &appContext{session: s}
 
@@ -82,7 +83,7 @@ var routes = Routes{
 	Route{
 		"RemoveUser",
 		"GET",
-		"/user/remove/:userId",
+		"/user/remove/:user_id",
 		removeUser,
 	},
 	Route{
@@ -100,37 +101,37 @@ var routes = Routes{
 	Route{
 		"DescribeUser",
 		"GET",
-		"/user/:userId",
+		"/user/:user_id",
 		describeUser,
 	},
 	Route{
 		"ListBids",
 		"GET",
-		"/user/bid/all/:userId",
+		"/user/bid/all/:user_id",
 		listBids,
 	},
 	Route{
 		"ListAcceptedBids",
 		"GET",
-		"/user/bid/accepted/:userId",
+		"/user/bid/accepted/:user_id",
 		listAcceptedBids,
 	},
 	Route{
 		"ListRejectedBids",
 		"GET",
-		"/user/bid/rejected/:userId",
+		"/user/bid/rejected/:user_id",
 		listRejectedBids,
 	},
 	Route{
 		"ListWonAuctions",
 		"GET",
-		"/user/auction/won/:userId",
+		"/user/auction/won/:user_id",
 		listWonAuctions,
 	},
 	Route{
 		"ListLostAuctions",
 		"GET",
-		"/user/auction/lost/:userId",
+		"/user/auction/lost/:user_id",
 		listLostAuctions,
 	},
 	Route{
@@ -148,19 +149,19 @@ var routes = Routes{
 	Route{
 		"DescribeAuction",
 		"GET",
-		"/auction/describe/:auctionId",
+		"/auction/:auction_id",
 		describeAuction,
 	},
 	Route{
 		"Index",
 		"POST",
-		"/auction/bid/:auctionId",
+		"/auction/bid",
 		placeBid,
 	},
 	Route{
 		"Provision",
 		"POST",
-		"/auction/provision/:auctiontId",
+		"/provision",
 		provision,
 	},
 }

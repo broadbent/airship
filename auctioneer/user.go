@@ -2,8 +2,6 @@ package auctioneer
 
 import (
 	"encoding/json"
-	"io"
-	"io/ioutil"
 
 	"github.com/rs/xid"
 	"github.com/zenazn/goji/web"
@@ -12,20 +10,17 @@ import (
 	"net/http"
 )
 
-var database = "airship"
-var collection = "user"
-
 type User struct {
 	Name    string `json:"name,omitempty"`
-	UserId  string `json:"userid,omitempty"`
+	ID      string `json:"id,omitempty"`
 	Balance int    `json:"balance,omitempty"`
 }
 
 func ensureUserIndex(s *mgo.Session) {
-	c := s.DB("airship").C("user")
+	c := s.DB(databaseName).C(collectionNames["user"])
 
 	index := mgo.Index{
-		Key:        []string{"userid"},
+		Key:        []string{"id"},
 		Unique:     true,
 		DropDups:   true,
 		Background: true,
@@ -38,18 +33,6 @@ func ensureUserIndex(s *mgo.Session) {
 	}
 }
 
-func readRequestBody(r *http.Request) (body []byte) {
-	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
-	if err != nil {
-		panic(err)
-	}
-	if err := r.Body.Close(); err != nil {
-		panic(err)
-	}
-
-	return body
-}
-
 func unmarshalUser(body []byte, user User) User {
 	err := json.Unmarshal(body, &user)
 	if err != nil {
@@ -58,23 +41,14 @@ func unmarshalUser(body []byte, user User) User {
 	return user
 }
 
-func writeResult(w http.ResponseWriter, user User) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := json.NewEncoder(w).Encode(user)
-	if err != nil {
-		panic(err)
-	}
-
-}
-
 func addUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
 	var user User
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
 
-	col := a.session.DB(database).C(collection)
+	col := a.session.DB(databaseName).C(collectionNames["user"])
 
-	user.UserId = xid.New().String()
+	user.ID = xid.New().String()
 
 	err := col.Insert(user)
 	if err != nil {
@@ -86,9 +60,9 @@ func addUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (in
 }
 
 func removeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	col := a.session.DB(database).C(collection)
+	col := a.session.DB(databaseName).C(collectionNames["user"])
 
-	user := bson.M{"userid": c.URLParams["userId"]}
+	user := bson.M{"id": c.URLParams["user_id"]}
 
 	err := col.Remove(user)
 	if err != nil {
@@ -99,7 +73,7 @@ func removeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) 
 }
 
 func changeBalance(col *mgo.Collection, user User, balance int) {
-	query := bson.M{"userid": user.UserId}
+	query := bson.M{"id": user.ID}
 	change := bson.M{"$inc": bson.M{"balance": balance}}
 
 	err := col.Update(query, change)
@@ -112,7 +86,7 @@ func changeBalance(col *mgo.Collection, user User, balance int) {
 func addBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
 	var user User
 
-	col := a.session.DB(database).C(collection)
+	col := a.session.DB(databaseName).C(collectionNames["user"])
 
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
@@ -125,7 +99,7 @@ func addBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) 
 func deductBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
 	var user User
 
-	col := a.session.DB(database).C(collection)
+	col := a.session.DB(databaseName).C(collectionNames["user"])
 
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
@@ -136,9 +110,9 @@ func deductBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Reques
 }
 
 func describeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	col := a.session.DB(database).C(collection)
+	col := a.session.DB(databaseName).C(collectionNames["user"])
 
-	user := bson.M{"userid": c.URLParams["userId"]}
+	user := bson.M{"id": c.URLParams["user_id"]}
 
 	result := User{}
 	err := col.Find(user).One(&result)
