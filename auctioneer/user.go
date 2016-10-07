@@ -2,6 +2,7 @@ package auctioneer
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/rs/xid"
 	"github.com/zenazn/goji/web"
@@ -27,16 +28,14 @@ func ensureUserIndex(s *mgo.Session) {
 		Sparse:     true,
 	}
 
-	err := c.EnsureIndex(index)
-	if err != nil {
-		panic(err)
+	if e := c.EnsureIndex(index); e != nil {
+		log.Panic(e)
 	}
 }
 
 func unmarshalUser(body []byte, user User) User {
-	err := json.Unmarshal(body, &user)
-	if err != nil {
-		panic(err)
+	if e := json.Unmarshal(body, &user); e != nil {
+		log.Panic(e)
 	}
 	return user
 }
@@ -50,9 +49,8 @@ func addUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (in
 
 	user.ID = xid.New().String()
 
-	err := col.Insert(user)
-	if err != nil {
-		panic(err)
+	if e := col.Insert(user); e != nil {
+		log.Panic(e)
 	}
 
 	writeResult(w, user)
@@ -64,47 +62,44 @@ func removeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) 
 
 	user := bson.M{"id": c.URLParams["user_id"]}
 
-	err := col.Remove(user)
-	if err != nil {
-		panic(err)
+	if e := col.Remove(user); e != nil {
+		log.Panic(e)
 	}
 
 	return 200, nil
 }
 
-func changeBalance(col *mgo.Collection, user User, balance int) {
-	query := bson.M{"id": user.ID}
-	change := bson.M{"$inc": bson.M{"balance": balance}}
+func changeBalance(a *appContext, r *http.Request, deduct bool) {
+	var user User
+	var update bson.M
 
-	err := col.Update(query, change)
-	if err != nil {
-		panic(err)
+	col := a.session.DB(databaseName).C(collectionNames["user"])
+
+	body := readRequestBody(r)
+	user = unmarshalUser(body, user)
+
+	if deduct {
+		update = bson.M{"$inc": bson.M{"balance": -user.Balance}}
+	} else {
+		update = bson.M{"$inc": bson.M{"balance": user.Balance}}
+	}
+
+	query := bson.M{"id": user.ID}
+
+	if e := col.Update(query, update); e != nil {
+		log.Panic(e)
 	}
 
 }
 
 func addBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	var user User
-
-	col := a.session.DB(databaseName).C(collectionNames["user"])
-
-	body := readRequestBody(r)
-	user = unmarshalUser(body, user)
-
-	changeBalance(col, user, user.Balance)
+	changeBalance(a, r, false)
 
 	return 200, nil
 }
 
 func deductBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	var user User
-
-	col := a.session.DB(databaseName).C(collectionNames["user"])
-
-	body := readRequestBody(r)
-	user = unmarshalUser(body, user)
-
-	changeBalance(col, user, -user.Balance)
+	changeBalance(a, r, true)
 
 	return 200, nil
 }
@@ -113,11 +108,10 @@ func describeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request
 	col := a.session.DB(databaseName).C(collectionNames["user"])
 
 	user := bson.M{"id": c.URLParams["user_id"]}
-
 	result := User{}
-	err := col.Find(user).One(&result)
-	if err != nil {
-		panic(err)
+
+	if e := col.Find(user).One(&result); e != nil {
+		log.Panic(e)
 	}
 
 	writeResult(w, result)

@@ -13,9 +13,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var memorySplit = 256
-var finalStage = 2
-
 type Node struct {
 	ID              string `json:"id"`
 	TotalMemory     int    `json:"total_memory"`
@@ -165,10 +162,10 @@ func createAuction(s *mgo.Session) {
 
 }
 
-func updateAuction(s *mgo.Session, query bson.M, change bson.M) {
+func updateAuction(s *mgo.Session, query bson.M, update bson.M) {
 	col := s.DB(databaseName).C(collectionNames["auction"])
 
-	_, err := col.UpdateAll(query, change)
+	_, err := col.UpdateAll(query, update)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -176,14 +173,14 @@ func updateAuction(s *mgo.Session, query bson.M, change bson.M) {
 
 func transitionAuctionStage(s *mgo.Session) {
 	query := bson.M{}
-	change := bson.M{"$inc": bson.M{"stage": 1}}
+	update := bson.M{"$inc": bson.M{"stage": 1}}
 
-	updateAuction(s, query, change)
+	updateAuction(s, query, update)
 }
 
 func expireAuctions(s *mgo.Session) {
 	query := bson.M{"stage": finalStage}
-	change := bson.M{"$set": bson.M{"live": false}}
+	update := bson.M{"$set": bson.M{"live": false}}
 
-	updateAuction(s, query, change)
+	updateAuction(s, query, update)
 }

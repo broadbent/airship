@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"log"
 	"time"
 
 	"github.com/broadbent/airship/auctioneer"
@@ -16,9 +17,8 @@ func main() {
 
 	session, err := mgo.Dial(mongoURL)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
-
 	defer session.Close()
 
 	go auctioneer.Serve(session)

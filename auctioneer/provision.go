@@ -3,8 +3,8 @@ package auctioneer
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/zenazn/goji/web"
@@ -22,14 +22,14 @@ type Provision struct {
 }
 
 //[List nodes] [String image_name] [Int ram] [Int hours]
+//{"image_name": "hypriot/rpi-busybox-httpd", "nodes": ["192.168.2.15","192.168.2.18"],"port_bindings": {"internal": 80, "external": 64444}, "ram":"200", "hours": 24}
 
 func checkValidity(col *mgo.Collection, auctionID string) bool {
 	query := bson.M{"id": auctionID}
 
 	auction := Auction{}
-	err := col.Find(query).One(&auction)
-	if err != nil {
-		panic(err)
+	if e := col.Find(query).One(&auction); e != nil {
+		log.Panic(err)
 	}
 
 	return true
@@ -45,9 +45,8 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 
 	body := readRequestBody(r)
 
-	err := json.Unmarshal(body, &provision)
-	if err != nil {
-		panic(err)
+	if e := json.Unmarshal(body, &provision); e != nil {
+		log.Panic(err)
 	}
 
 	col := a.session.DB(databaseName).C(collectionNames["auction"])
@@ -71,7 +70,6 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 			panic(err)
 		}
 		defer resp.Body.Close()
-		//{"image_name": "hypriot/rpi-busybox-httpd", "nodes": ["192.168.2.15","192.168.2.18"],"port_bindings": {"internal": 80, "external": 64444}, "ram":"200", "hours": 24}
 		body, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
 			panic(err)

@@ -1,7 +1,6 @@
 package auctioneer
 
 import (
-	// "fmt"
 	"log"
 	"net/http"
 
@@ -33,7 +32,7 @@ type appHandler struct {
 func (ah appHandler) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
 	status, err := ah.H(ah.appContext, c, w, r)
 	if err != nil {
-		log.Printf("HTTP %d: %q", status, err)
+		log.Println("HTTP %d: %q", status, err)
 		switch status {
 		case http.StatusNotFound:
 			http.NotFound(w, r)

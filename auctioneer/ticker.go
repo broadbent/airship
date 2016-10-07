@@ -13,13 +13,17 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+var bidIncrement = 1
+var memorySplit = 256
+var finalStage = 2
+var provisionerPath = "http://148.88.226.119:60000"
+
 var databaseName = "airship"
 var collectionNames = map[string]string{
 	"user":    "user",
 	"auction": "auction",
 	"bid":     "bid",
 }
-var provisionerPath = "http://148.88.226.119:60000"
 
 func Ticker(interval time.Duration, session *mgo.Session) {
 	ticker := time.NewTicker(interval)
@@ -32,10 +36,10 @@ func Ticker(interval time.Duration, session *mgo.Session) {
 	for {
 		select {
 		case <-ticker.C:
-			log.Println("Scheduled task is triggered.")
+			log.Println("Auction staging process started.")
 			go runWorker(workers, session)
 		case <-workers:
-			log.Println("Scheduled task is completed.")
+			log.Println("Auction staging process complete.")
 		case <-death:
 			return
 		}
@@ -44,28 +48,26 @@ func Ticker(interval time.Duration, session *mgo.Session) {
 
 func writeResult(w http.ResponseWriter, user interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err := json.NewEncoder(w).Encode(user)
-	if err != nil {
-		panic(err)
+	if e := json.NewEncoder(w).Encode(user); e != nil {
+		log.Panic(e)
 	}
 }
 
 func readRequestBody(r *http.Request) (body []byte) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576))
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
-	if err := r.Body.Close(); err != nil {
-		panic(err)
+	if e := r.Body.Close(); e != nil {
+		log.Panic(e)
 	}
 
 	return body
 }
 
 func dropDatabase(s *mgo.Session) {
-	err := s.DB("airship").DropDatabase()
-	if err != nil {
-		panic(err)
+	if e := s.DB("airship").DropDatabase(); e != nil {
+		log.Panic(e)
 	}
 }
 

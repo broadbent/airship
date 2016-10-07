@@ -2,7 +2,7 @@ package auctioneer
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -10,8 +10,6 @@ import (
 	"github.com/zenazn/goji/web"
 	"gopkg.in/mgo.v2/bson"
 )
-
-var bidIncrement = 1
 
 type Bid struct {
 	ID          string    `json:"id"`
@@ -36,12 +34,9 @@ func listBids(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 
 func findWinner(bids []Bid, winningBid Bid) Bid {
 	for _, bid := range bids {
-		fmt.Println(bid.Amount)
-		var winningAmount = winningBid.Amount + bidIncrement
-		fmt.Println(winningAmount)
 		if bid.Amount > (winningBid.Amount + bidIncrement) {
 			winningBid = bid
-			fmt.Println("We have ourselves a new winner!")
+			log.Println("We have ourselves a new winner!")
 		}
 	}
 	return winningBid
@@ -72,10 +67,8 @@ func placeBid(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 	col := a.session.DB(databaseName).C(collectionNames["auction"])
 
 	query := bson.M{"id": bid.AuctionID, "live": true}
-
-	fmt.Println(bid.AuctionID)
-
 	auction := Auction{}
+
 	err = col.Find(query).One(&auction)
 	if err != nil {
 		panic(err)
@@ -86,7 +79,6 @@ func placeBid(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 	bids = append(bids, bid)
 
 	winner := findWinner(bids, auction.Items[itemIndex].Winning)
-	fmt.Println(winner)
 
 	if winner == bid {
 		auction.Items[itemIndex].Winning = winner
