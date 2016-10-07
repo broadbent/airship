@@ -22,6 +22,7 @@ type Routes []Route
 
 type appContext struct {
 	session *mgo.Session
+	reset   chan bool
 }
 
 type appHandler struct {
@@ -44,13 +45,14 @@ func (ah appHandler) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func Serve(s *mgo.Session) {
+func Serve(s *mgo.Session, reset chan bool) {
 
 	dropDatabase(s)
 	ensureUserIndex(s)
 	ensureAuctionIndex(s)
 
 	context := &appContext{session: s}
+	context = &appContext{reset: reset}
 
 	r := web.New()
 
@@ -162,5 +164,11 @@ var routes = Routes{
 		"POST",
 		"/provision",
 		provision,
+	},
+	Route{
+		"Reset",
+		"GET",
+		"/debug/reset",
+		reset,
 	},
 }

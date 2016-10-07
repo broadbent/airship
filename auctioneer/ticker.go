@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/zenazn/goji/web"
 	"gopkg.in/mgo.v2"
 )
 
@@ -25,7 +26,7 @@ var collectionNames = map[string]string{
 	"bid":     "bid",
 }
 
-func Ticker(interval time.Duration, session *mgo.Session) {
+func Ticker(interval time.Duration, session *mgo.Session, reset chan bool) {
 	ticker := time.NewTicker(interval)
 	workers := make(chan bool, 1)
 	death := make(chan os.Signal, 1)
@@ -36,13 +37,20 @@ func Ticker(interval time.Duration, session *mgo.Session) {
 	for {
 		select {
 		case <-ticker.C:
-			log.Println("Auction staging process started.")
 			go runWorker(workers, session)
+			log.Println("Auction staging process started.")
 		case <-workers:
 			log.Println("Auction staging process complete.")
+		case <-reset:
+			ticker.Stop()
+			ticker = time.NewTicker(interval)
+			dropDatabase(session)
+			createAuction(session)
+			log.Println("Auction staging process reset.")
 		case <-death:
 			return
 		}
+
 	}
 }
 
@@ -63,6 +71,11 @@ func readRequestBody(r *http.Request) (body []byte) {
 	}
 
 	return body
+}
+
+func reset(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
+	a.reset <- true
+	return 200, nil
 }
 
 func dropDatabase(s *mgo.Session) {
