@@ -53,9 +53,9 @@ func Ticker(session *mgo.Session, reset chan bool, newConfiguration *config.Conf
 	}
 }
 
-func writeResult(w http.ResponseWriter, user interface{}) {
+func writeResult(w http.ResponseWriter, obj interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if e := json.NewEncoder(w).Encode(user); e != nil {
+	if e := json.NewEncoder(w).Encode(obj); e != nil {
 		log.Panic(e)
 	}
 }
