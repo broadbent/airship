@@ -9,28 +9,29 @@ import (
 
 	"github.com/zenazn/goji/web"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	// "gopkg.in/mgo.v2/bson"
 )
 
 type Provision struct {
-	Nodes     []string `json:"nodes,omitempty"`
-	ImageName string   `json:"image_name"`
-	Memory    int      `json:"ram"`
-	Hours     int      `json:"hours"`
-	UserID    string   `json:"user_id,omitempty"`
-	AuctionID string   `json:"auction_id,omitempty"`
+	Nodes        []string       `json:"nodes"`
+	ImageName    string         `json:"image_name"`
+	Memory       int            `json:"ram"`
+	Hours        int            `json:"hours"`
+	PortBindings map[string]int `json:"port_bindings"`
+	UserID       string         `json:"user_id,omitempty"`
+	AuctionID    string         `json:"auction_id,omitempty"`
 }
 
 //[List nodes] [String image_name] [Int ram] [Int hours]
 //{"image_name": "hypriot/rpi-busybox-httpd", "nodes": ["192.168.2.15","192.168.2.18"],"port_bindings": {"internal": 80, "external": 64444}, "ram":"200", "hours": 24}
 
 func checkValidity(col *mgo.Collection, auctionID string) bool {
-	query := bson.M{"id": auctionID}
+	// query := bson.M{"id": auctionID}
 
-	auction := Auction{}
-	if e := col.Find(query).One(&auction); e != nil {
-		log.Panic(err)
-	}
+	// auction := Auction{}
+	// if e := col.Find(query).One(&auction); e != nil {
+	// 	log.Panic(e)
+	// }
 
 	return true
 }
@@ -46,13 +47,13 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 	body := readRequestBody(r)
 
 	if e := json.Unmarshal(body, &provision); e != nil {
-		log.Panic(err)
+		log.Panic(e)
 	}
 
 	col := a.session.DB(databaseName).C(collectionNames["auction"])
 
 	if checkValidity(col, provision.AuctionID) {
-		provision.Nodes = resolveNodes()
+		// provision.Nodes = resolveNodes()
 		provision.UserID = ""
 		provision.AuctionID = ""
 
@@ -63,8 +64,8 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 
 		reader := bytes.NewReader(post)
 
-		path := provisionerPath + "/provision_dockers"
-		fmt.Println(path)
+		path := provisionerPath + "/nodes/provision_dockers"
+		log.Println(path)
 		resp, err := http.Post(path, "application/json; charset=UTF-8", reader) //should the end point not be '/provision_docker_containers'?
 		if err != nil {
 			panic(err)
@@ -75,7 +76,7 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 			panic(err)
 		}
 
-		fmt.Println(string(body))
+		log.Println(string(body))
 	}
 
 	return 200, nil

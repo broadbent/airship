@@ -23,11 +23,11 @@ type Node struct {
 }
 
 type Item struct {
-	ID       string `json:"id"`
-	Memory   int    `json:"memory"`
-	Location string `json:"location"`
-	Bids     []Bid
-	Winning  Bid
+	ID      string `json:"id"`
+	Memory  int    `json:"memory"`
+	Parent  Node   `json:"parent"`
+	Bids    []Bid
+	Winning Bid
 }
 
 type Auction struct {
@@ -100,26 +100,26 @@ func describeAuction(a *appContext, c web.C, w http.ResponseWriter, r *http.Requ
 
 func sliceNodes(auction *Auction) {
 	for _, node := range auction.Nodes {
-		auction.Items = append(auction.Items, createItems(&node)...)
+		auction.Items = append(auction.Items, createItems(node)...)
 	}
 }
 
-func createItems(node *Node) []Item {
+func createItems(node Node) []Item {
 	var items []Item
 
 	slices := node.AvailableMemory / memorySplit
 	for i := 0; i < slices; i++ {
-		items = append(items, createItem(node.Location, memorySplit))
+		items = append(items, createItem(node, memorySplit))
 	}
 
 	return items
 }
 
-func createItem(location string, memory int) Item {
+func createItem(node Node, memory int) Item {
 	var item Item
 
 	item.ID = xid.New().String()
-	item.Location = location
+	item.Parent = node
 	item.Memory = memory
 
 	return item
