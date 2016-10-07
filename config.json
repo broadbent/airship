@@ -1,6 +1,6 @@
 {
     "MongoURI": "mongodb://localhost:27017",
-    "Interval": "10m",
+    "Interval": "150s",
     "BidIncrement": 1,
     "MemorySplit": 256,
     "FinalStage": 2,

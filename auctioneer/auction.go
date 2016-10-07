@@ -31,12 +31,13 @@ type Item struct {
 }
 
 type Auction struct {
-	ID          string    `json:"id"`
-	Stage       int       `json:"stage"`
-	TimeCreated time.Time `json:"time_created"`
-	Live        bool      `json:"live"`
-	Items       []Item    `json:"items"`
-	Nodes       []Node    `json:"nodes"`
+	ID    string    `json:"id"`
+	Stage int       `json:"stage"`
+	Start time.Time `json:"start"`
+	End   time.Time `json:"end"`
+	Live  bool      `json:"live"`
+	Items []Item    `json:"items"`
+	Nodes []Node    `json:"nodes"`
 }
 
 func ensureAuctionIndex(s *mgo.Session) {
@@ -125,13 +126,22 @@ func createItem(node Node, memory int) Item {
 	return item
 }
 
+func calcStopTime(start time.Time) time.Time {
+	interval, _ := time.ParseDuration(configuration.Interval)
+	stages := configuration.FinalStage - 1
+	duration := interval * time.Duration(stages)
+	stop := start.Add(duration)
+	return stop
+}
+
 func createAuction(s *mgo.Session) {
 	var auction Auction
 	var nodes []Node
 
 	auction.Stage = 1
 	auction.ID = xid.New().String()
-	auction.TimeCreated = time.Now()
+	auction.Start = time.Now()
+	auction.End = calcStopTime(auction.Start)
 	auction.Live = true
 
 	resp, err := http.Get(configuration.ProvisionerPath + "/nodes")

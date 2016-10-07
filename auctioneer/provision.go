@@ -33,6 +33,8 @@ func checkValidity(col *mgo.Collection, auctionID string) bool {
 	// 	log.Panic(e)
 	// }
 
+	//check if auction is not live any more
+
 	return true
 }
 
