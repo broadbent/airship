@@ -26,17 +26,17 @@ type Item struct {
 	ID      string `json:"id"`
 	Memory  int    `json:"memory"`
 	Parent  Node   `json:"parent"`
-	Bids    []Bid
-	Winning Bid
+	Bids    []Bid  `json:"bids"`
+	Winning Bid    `json:"winning_bid"`
 }
 
 type Auction struct {
 	ID          string    `json:"id"`
 	Stage       int       `json:"stage"`
 	TimeCreated time.Time `json:"time_created"`
-	Live        bool      `json:"arch"`
-	Items       []Item
-	Nodes       []Node
+	Live        bool      `json:"live"`
+	Items       []Item    `json:"items"`
+	Nodes       []Node    `json:"nodes"`
 }
 
 func ensureAuctionIndex(s *mgo.Session) {
