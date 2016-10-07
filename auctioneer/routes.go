@@ -51,8 +51,7 @@ func Serve(s *mgo.Session, reset chan bool) {
 	ensureUserIndex(s)
 	ensureAuctionIndex(s)
 
-	context := &appContext{session: s}
-	context = &appContext{reset: reset}
+	context := &appContext{session: s, reset: reset}
 
 	r := web.New()
 

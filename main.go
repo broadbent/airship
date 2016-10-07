@@ -15,11 +15,8 @@ func main() {
 
 	configuration := config.Read(*path)
 
-	session, err := mgo.Dial(configuration.MongoURI)
-	if err != nil {
-		log.Panic(err)
-	}
-	// defer session.Close()
+	session := createMongoDBSession(configuration.MongoURI)
+	defer session.Close()
 
 	reset := make(chan bool, 1)
 
@@ -28,8 +25,11 @@ func main() {
 
 }
 
-// func createMongoDBSession(mongoURI string) *mgo.Session {
+func createMongoDBSession(mongoURI string) *mgo.Session {
+	session, err := mgo.Dial(mongoURI)
+	if err != nil {
+		log.Panic(err)
+	}
 
-// 	log.Println(session.Ping)
-// 	return session
-// }
+	return session
+}
