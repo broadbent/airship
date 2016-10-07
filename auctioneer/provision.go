@@ -23,7 +23,7 @@ type Provision struct {
 
 //[List nodes] [String image_name] [Int ram] [Int hours]
 
-func checkValidity(col *mgo.Collection, auctionID string) {
+func checkValidity(col *mgo.Collection, auctionID string) bool {
 	query := bson.M{"id": auctionID}
 
 	auction := Auction{}
@@ -31,6 +31,8 @@ func checkValidity(col *mgo.Collection, auctionID string) {
 	if err != nil {
 		panic(err)
 	}
+
+	return true
 }
 
 func resolveNodes() []string {
@@ -50,33 +52,33 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 
 	col := a.session.DB(databaseName).C(collectionNames["auction"])
 
-	checkValidity(col, provision.AuctionID)
+	if checkValidity(col, provision.AuctionID) {
+		provision.Nodes = resolveNodes()
+		provision.UserID = ""
+		provision.AuctionID = ""
 
-	provision.Nodes = resolveNodes()
-	provision.UserID = ""
-	provision.AuctionID = ""
+		post, err := json.Marshal(provision)
+		if err != nil {
+			panic(err)
+		}
 
-	post, err := json.Marshal(provision)
-	if err != nil {
-		panic(err)
+		reader := bytes.NewReader(post)
+
+		path := provisionerPath + "/provision_dockers"
+		fmt.Println(path)
+		resp, err := http.Post(path, "application/json; charset=UTF-8", reader) //should the end point not be '/provision_docker_containers'?
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+		//{"image_name": "hypriot/rpi-busybox-httpd", "nodes": ["192.168.2.15","192.168.2.18"],"port_bindings": {"internal": 80, "external": 64444}, "ram":"200", "hours": 24}
+		body, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(string(body))
 	}
-
-	reader := bytes.NewReader(post)
-
-	path := provisionerPath + "/provision_dockers"
-	fmt.Println(path)
-	resp, err := http.Post(path, "application/json; charset=UTF-8", reader) //should the end point not be '/provision_docker_containers'?
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	body, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(body))
 
 	return 200, nil
 }

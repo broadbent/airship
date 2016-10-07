@@ -2,8 +2,8 @@ package auctioneer
 
 import (
 	"encoding/json"
-	// "fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 )
 
 var memorySplit = 256
+var finalStage = 2
 
 type Node struct {
 	ID              string `json:"id"`
@@ -52,9 +53,8 @@ func ensureAuctionIndex(s *mgo.Session) {
 		Sparse:     true,
 	}
 
-	err := c.EnsureIndex(index)
-	if err != nil {
-		panic(err)
+	if e := c.EnsureIndex(index); e != nil {
+		log.Panic(e)
 	}
 }
 
@@ -66,12 +66,12 @@ func listLostAuctions(a *appContext, c web.C, w http.ResponseWriter, r *http.Req
 	return 501, nil
 }
 
-func listAuctions(col *mgo.Collection, query bson.M) []Auction {
-	var auctions []Auction
+func listAuction(a *appContext, query bson.M) []Auction {
+	col := a.session.DB(databaseName).C(collectionNames["auction"])
 
-	err := col.Find(query).All(&auctions)
-	if err != nil {
-		panic(err)
+	var auctions []Auction
+	if e := col.Find(query).All(&auctions); e != nil {
+		log.Panic(e)
 	}
 
 	return auctions
@@ -80,11 +80,7 @@ func listAuctions(col *mgo.Collection, query bson.M) []Auction {
 func listLiveAuctions(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
 	query := bson.M{"live": true}
 
-	col := a.session.DB(databaseName).C(collectionNames["auction"])
-
-	auctions := listAuctions(col, query)
-
-	writeResult(w, auctions)
+	writeResult(w, listAuction(a, query))
 
 	return 200, nil
 }
@@ -92,27 +88,15 @@ func listLiveAuctions(a *appContext, c web.C, w http.ResponseWriter, r *http.Req
 func listExpiredAuctions(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
 	query := bson.M{"live": false}
 
-	col := a.session.DB(databaseName).C(collectionNames["auction"])
-
-	auctions := listAuctions(col, query)
-
-	writeResult(w, auctions)
+	writeResult(w, listAuction(a, query))
 
 	return 200, nil
 }
 
 func describeAuction(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	col := a.session.DB(databaseName).C(collectionNames["auction"])
+	query := bson.M{"id": c.URLParams["auction_id"]}
 
-	auction := bson.M{"id": c.URLParams["auction_id"]}
-
-	result := Auction{}
-	err := col.Find(auction).One(&result)
-	if err != nil {
-		panic(err)
-	}
-
-	writeResult(w, result)
+	writeResult(w, listAuction(a, query))
 
 	return 200, nil
 }
@@ -155,18 +139,18 @@ func createAuction(s *mgo.Session) {
 
 	resp, err := http.Get(provisionerPath + "/nodes")
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	err = json.Unmarshal(body, &nodes)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	auction.Nodes = nodes
@@ -175,44 +159,31 @@ func createAuction(s *mgo.Session) {
 
 	col := s.DB(databaseName).C(collectionNames["auction"])
 
-	err = col.Insert(auction)
-	if err != nil {
-		panic(err)
+	if e := col.Insert(auction); e != nil {
+		log.Panic(e)
 	}
 
-	// body := readRequestBody(r)
-	// user = unmarshalUser(body, user)
+}
 
-	// col := a.session.DB(database).C(collection)
+func updateAuction(s *mgo.Session, query bson.M, change bson.M) {
+	col := s.DB(databaseName).C(collectionNames["auction"])
 
-	// user.UserId = xid.New().String()
-
-	// err := col.Insert(user)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	_, err := col.UpdateAll(query, change)
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func transitionAuctionStage(s *mgo.Session) {
 	query := bson.M{}
 	change := bson.M{"$inc": bson.M{"stage": 1}}
 
-	col := s.DB(databaseName).C(collectionNames["auction"])
-
-	_, err := col.UpdateAll(query, change)
-	if err != nil {
-		panic(err)
-	}
+	updateAuction(s, query, change)
 }
 
 func expireAuctions(s *mgo.Session) {
-	query := bson.M{"stage": 2}
+	query := bson.M{"stage": finalStage}
 	change := bson.M{"$set": bson.M{"live": false}}
 
-	col := s.DB(databaseName).C(collectionNames["auction"])
-
-	_, err := col.UpdateAll(query, change)
-	if err != nil {
-		panic(err)
-	}
+	updateAuction(s, query, change)
 }
