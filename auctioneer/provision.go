@@ -50,7 +50,7 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 		log.Panic(e)
 	}
 
-	col := a.session.DB(databaseName).C(collectionNames["auction"])
+	col := a.session.DB(configuration.DatabaseName).C(collectionNames["auction"])
 
 	if checkValidity(col, provision.AuctionID) {
 		// provision.Nodes = resolveNodes()
@@ -64,7 +64,7 @@ func provision(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (
 
 		reader := bytes.NewReader(post)
 
-		path := provisionerPath + "/nodes/provision_dockers"
+		path := configuration.ProvisionerPath + "/nodes/provision_dockers"
 		log.Println(path)
 		resp, err := http.Post(path, "application/json; charset=UTF-8", reader) //should the end point not be '/provision_docker_containers'?
 		if err != nil {

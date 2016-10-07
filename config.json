@@ -1,0 +1,9 @@
+{
+    "MongoURI": "mongodb://localhost:27017",
+    "Interval": "10m",
+    "BidIncrement": 1,
+    "MemorySplit": 256,
+    "FinalStage": 2,
+    "ProvisionerPath": "http://148.88.226.119:60000",
+    "DatabaseName": "airship"
+}

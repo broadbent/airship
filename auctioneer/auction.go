@@ -40,7 +40,7 @@ type Auction struct {
 }
 
 func ensureAuctionIndex(s *mgo.Session) {
-	c := s.DB(databaseName).C(collectionNames["auction"])
+	c := s.DB(configuration.DatabaseName).C(collectionNames["auction"])
 
 	index := mgo.Index{
 		Key:        []string{"id"},
@@ -64,7 +64,7 @@ func listLostAuctions(a *appContext, c web.C, w http.ResponseWriter, r *http.Req
 }
 
 func listAuction(a *appContext, query bson.M) []Auction {
-	col := a.session.DB(databaseName).C(collectionNames["auction"])
+	col := a.session.DB(configuration.DatabaseName).C(collectionNames["auction"])
 
 	var auctions []Auction
 	if e := col.Find(query).All(&auctions); e != nil {
@@ -107,9 +107,9 @@ func sliceNodes(auction *Auction) {
 func createItems(node Node) []Item {
 	var items []Item
 
-	slices := node.AvailableMemory / memorySplit
+	slices := node.AvailableMemory / configuration.MemorySplit
 	for i := 0; i < slices; i++ {
-		items = append(items, createItem(node, memorySplit))
+		items = append(items, createItem(node, configuration.MemorySplit))
 	}
 
 	return items
@@ -134,7 +134,7 @@ func createAuction(s *mgo.Session) {
 	auction.TimeCreated = time.Now()
 	auction.Live = true
 
-	resp, err := http.Get(provisionerPath + "/nodes")
+	resp, err := http.Get(configuration.ProvisionerPath + "/nodes")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -154,7 +154,7 @@ func createAuction(s *mgo.Session) {
 
 	sliceNodes(&auction)
 
-	col := s.DB(databaseName).C(collectionNames["auction"])
+	col := s.DB(configuration.DatabaseName).C(collectionNames["auction"])
 
 	if e := col.Insert(auction); e != nil {
 		log.Panic(e)
@@ -163,7 +163,7 @@ func createAuction(s *mgo.Session) {
 }
 
 func updateAuction(s *mgo.Session, query bson.M, update bson.M) {
-	col := s.DB(databaseName).C(collectionNames["auction"])
+	col := s.DB(configuration.DatabaseName).C(collectionNames["auction"])
 
 	_, err := col.UpdateAll(query, update)
 	if err != nil {
@@ -179,7 +179,7 @@ func transitionAuctionStage(s *mgo.Session) {
 }
 
 func expireAuctions(s *mgo.Session) {
-	query := bson.M{"stage": finalStage}
+	query := bson.M{"stage": configuration.FinalStage}
 	update := bson.M{"$set": bson.M{"live": false}}
 
 	updateAuction(s, query, update)

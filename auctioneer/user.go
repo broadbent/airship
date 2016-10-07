@@ -18,7 +18,7 @@ type User struct {
 }
 
 func ensureUserIndex(s *mgo.Session) {
-	c := s.DB(databaseName).C(collectionNames["user"])
+	c := s.DB(configuration.DatabaseName).C(collectionNames["user"])
 
 	index := mgo.Index{
 		Key:        []string{"id"},
@@ -45,7 +45,7 @@ func addUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (in
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
 
-	col := a.session.DB(databaseName).C(collectionNames["user"])
+	col := a.session.DB(configuration.DatabaseName).C(collectionNames["user"])
 
 	user.ID = xid.New().String()
 
@@ -58,7 +58,7 @@ func addUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (in
 }
 
 func removeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	col := a.session.DB(databaseName).C(collectionNames["user"])
+	col := a.session.DB(configuration.DatabaseName).C(collectionNames["user"])
 
 	user := bson.M{"id": c.URLParams["user_id"]}
 
@@ -73,7 +73,7 @@ func changeBalance(a *appContext, r *http.Request, deduct bool) {
 	var user User
 	var update bson.M
 
-	col := a.session.DB(databaseName).C(collectionNames["user"])
+	col := a.session.DB(configuration.DatabaseName).C(collectionNames["user"])
 
 	body := readRequestBody(r)
 	user = unmarshalUser(body, user)
@@ -105,7 +105,7 @@ func deductBalance(a *appContext, c web.C, w http.ResponseWriter, r *http.Reques
 }
 
 func describeUser(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
-	col := a.session.DB(databaseName).C(collectionNames["user"])
+	col := a.session.DB(configuration.DatabaseName).C(collectionNames["user"])
 
 	user := bson.M{"id": c.URLParams["user_id"]}
 	result := User{}

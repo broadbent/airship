@@ -10,23 +10,22 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/broadbent/airship/config"
 	"github.com/zenazn/goji/web"
 	"gopkg.in/mgo.v2"
 )
 
-var bidIncrement = 1
-var memorySplit = 256
-var finalStage = 2
-var provisionerPath = "http://148.88.226.119:60000"
+var configuration *config.Configuration
 
-var databaseName = "airship"
 var collectionNames = map[string]string{
 	"user":    "user",
 	"auction": "auction",
 	"bid":     "bid",
 }
 
-func Ticker(interval time.Duration, session *mgo.Session, reset chan bool) {
+func Ticker(session *mgo.Session, reset chan bool, newConfiguration *config.Configuration) {
+	configuration = newConfiguration
+	interval, _ := time.ParseDuration(configuration.Interval)
 	ticker := time.NewTicker(interval)
 	workers := make(chan bool, 1)
 	death := make(chan os.Signal, 1)

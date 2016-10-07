@@ -34,7 +34,7 @@ func listBids(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 
 func findWinner(bids []Bid, winningBid Bid) Bid {
 	for _, bid := range bids {
-		if bid.Amount > (winningBid.Amount + bidIncrement) {
+		if bid.Amount > (winningBid.Amount + configuration.BidIncrement) {
 			winningBid = bid
 			log.Println("We have ourselves a new winner!")
 		}
@@ -64,7 +64,7 @@ func placeBid(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 		panic(err)
 	}
 
-	col := a.session.DB(databaseName).C(collectionNames["auction"])
+	col := a.session.DB(configuration.DatabaseName).C(collectionNames["auction"])
 
 	query := bson.M{"id": bid.AuctionID, "live": true}
 	auction := Auction{}
