@@ -31,7 +31,9 @@ type appHandler struct {
 }
 
 func (ah appHandler) ServeHTTPC(c web.C, w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	status, err := ah.H(ah.appContext, c, w, r)
+
 	if err != nil {
 		log.Println("HTTP %d: %q", status, err)
 		switch status {

@@ -27,3 +27,5 @@ _testmain.go
 
 # Bolt DB persistent files
 *.db
+
+TODO.md
