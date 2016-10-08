@@ -7,13 +7,14 @@ import (
 )
 
 type Configuration struct {
-	MongoURI        string
-	Interval        string
-	BidIncrement    int
-	MemorySplit     int
-	FinalStage      int
-	ProvisionerPath string
-	DatabaseName    string
+	MongoURI          string
+	Interval          string
+	BidIncrement      int
+	MemorySplit       int
+	FinalStage        int
+	ProvisionerPath   string
+	DatabaseName      string
+	StartingValuation int
 }
 
 func Read(path string) Configuration {

@@ -16,7 +16,7 @@ type Bid struct {
 	AuctionID   string    `json:"auction_id"`
 	ItemID      string    `json:"item_id"`
 	UserID      string    `json:"user_id"`
-	Amount      int       `json:"amount"`
+	Valuation   int       `json:"valuation"`
 	TimeCreated time.Time `json:"time_created"`
 }
 
@@ -32,14 +32,13 @@ func listBids(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 	return 501, nil
 }
 
-func findWinner(bids []Bid, winningBid Bid) Bid {
-	for _, bid := range bids {
-		if bid.Amount > (winningBid.Amount + configuration.BidIncrement) {
-			winningBid = bid
-			log.Println("We have ourselves a new winner!")
-		}
+func isLeader(bid Bid, price int) bool { //needs new logic
+	if bid.Valuation > (price + configuration.BidIncrement) {
+		return true
+		log.Println("We have ourselves a new winner!")
 	}
-	return winningBid
+	return false
+
 }
 
 func findItemIndex(auction *Auction, bidID string) int {
@@ -51,11 +50,17 @@ func findItemIndex(auction *Auction, bidID string) int {
 	return -1
 }
 
-func placeBid(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
+func createBid() Bid {
 	var bid Bid
 
 	bid.ID = xid.New().String()
 	bid.TimeCreated = time.Now()
+
+	return bid
+}
+
+func placeBid(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
+	bid := createBid()
 
 	body := readRequestBody(r)
 
@@ -75,14 +80,25 @@ func placeBid(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 	}
 
 	itemIndex := findItemIndex(&auction, bid.ItemID)
-	bids := auction.Items[itemIndex].Bids
-	bids = append(bids, bid)
+	item := &auction.Items[itemIndex]
 
-	winner := findWinner(bids, auction.Items[itemIndex].Winning)
+	bids := append(item.Bids, bid)
 
-	if winner == bid {
-		auction.Items[itemIndex].Winning = winner
-		auction.Items[itemIndex].Bids = bids //should we anonmysie ids?
+	leading := isLeader(bid, item.Leading.Valuation)
+
+	change := false
+
+	if leading {
+		item.Price = item.Leading.Valuation
+		item.Leading = bid
+		change = true
+	} else if bid.Valuation > item.Price {
+		item.Price = bid.Valuation
+		change = true
+	}
+
+	if change {
+		item.Bids = bids //should we anonmysie ids?
 		query = bson.M{"id": auction.ID}
 		err = col.Update(query, auction) //Won't be atomic - need to seperate out items, nodes, bids
 		if err != nil {
@@ -90,7 +106,7 @@ func placeBid(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (i
 		}
 	}
 
-	writeResult(w, winner)
+	writeResult(w, item)
 
 	return 200, nil
 }

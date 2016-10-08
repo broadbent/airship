@@ -27,7 +27,8 @@ type Item struct {
 	Memory  int    `json:"memory"`
 	Parent  Node   `json:"parent"`
 	Bids    []Bid  `json:"bids"`
-	Winning Bid    `json:"winning_bid"`
+	Leading Bid    `json:"leading_bid"`
+	Price   int    `json:"price"`
 }
 
 type Auction struct {
@@ -101,27 +102,39 @@ func describeAuction(a *appContext, c web.C, w http.ResponseWriter, r *http.Requ
 
 func sliceNodes(auction *Auction) {
 	for _, node := range auction.Nodes {
-		auction.Items = append(auction.Items, createItems(node)...)
+		auction.Items = append(auction.Items, createItems(node, auction.ID)...)
 	}
 }
 
-func createItems(node Node) []Item {
+func createItems(node Node, auctionID string) []Item {
 	var items []Item
 
 	slices := node.AvailableMemory / configuration.MemorySplit
 	for i := 0; i < slices; i++ {
-		items = append(items, createItem(node, configuration.MemorySplit))
+		items = append(items, createItem(node, auctionID, configuration.MemorySplit))
 	}
 
 	return items
 }
 
-func createItem(node Node, memory int) Item {
+func createStartingBid(auctionID string, itemID string) Bid {
+	bid := createBid()
+
+	bid.AuctionID = auctionID
+	bid.ItemID = itemID
+	bid.Valuation = configuration.StartingValuation
+	//TODO: Set bid.UserID to an admin user
+
+	return bid
+}
+
+func createItem(node Node, auctionID string, memory int) Item {
 	var item Item
 
 	item.ID = xid.New().String()
 	item.Parent = node
 	item.Memory = memory
+	item.Leading = createStartingBid(item.ID, auctionID)
 
 	return item
 }
