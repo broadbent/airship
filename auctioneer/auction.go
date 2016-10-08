@@ -23,12 +23,13 @@ type Node struct {
 }
 
 type Item struct {
-	ID      string `json:"id"`
-	Memory  int    `json:"memory"`
-	Parent  Node   `json:"parent"`
-	Bids    []Bid  `json:"bids"`
-	Leading Bid    `json:"leading_bid"`
-	Price   int    `json:"price"`
+	ID              string `json:"id"`
+	Memory          int    `json:"memory"`
+	ParentNode      Node   `json:"parent_node"`
+	ParentAuctionID string `json:"parent_auction_id"`
+	Bids            []Bid  `json:"bids"`
+	Leading         Bid    `json:"leading_bid"`
+	Price           int    `json:"price"`
 }
 
 type Auction struct {
@@ -132,7 +133,8 @@ func createItem(node Node, auctionID string, memory int) Item {
 	var item Item
 
 	item.ID = xid.New().String()
-	item.Parent = node
+	item.ParentNode = node
+	item.ParentAuctionID = auctionID
 	item.Memory = memory
 	item.Leading = createStartingBid(item.ID, auctionID)
 
