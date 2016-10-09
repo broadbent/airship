@@ -22,17 +22,19 @@ var phases = 3
 // var bidIncrement = 10
 // var startBid = 10
 // var startPause = "10s"
+
 var stagePause = "5s"
 var phasePause = "10s"
 var bidPause = "2s"
-var minPause = 10
-var maxPause = 20
+var minPause = 5
+var maxPause = 15
 
 var bidders = 1
 
 var locations = map[string]int{
 	"datacenter": 4,
 	"residence":  4,
+	"exchange":   4,
 }
 
 func main() {
@@ -43,7 +45,7 @@ func startBidder(bidderNumber int) bool {
 	userID = userIDRoot + strconv.Itoa(bidderNumber)
 	log.Printf("Bidder %v started.\n", bidderNumber)
 	randomiseLocationQuotas()
-	log.Println(locations)
+	log.Printf("Quota is a follows: %v", locations)
 	auctions := fetchAuctions()
 	items := determineTargetItems(auctions, locations)
 	bids := generateBids(items)
