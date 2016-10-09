@@ -17,6 +17,7 @@ type Bid struct {
 	ItemID      string    `json:"item_id"`
 	UserID      string    `json:"user_id"`
 	Valuation   int       `json:"valuation"`
+	UserTag     string    `json:"user_tag"`
 	TimeCreated time.Time `json:"time_created"`
 }
 
