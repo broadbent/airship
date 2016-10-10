@@ -155,7 +155,7 @@ func winningAuctions(auctions *[]auctioneer.Auction) []auctioneer.Item {
 
 	for _, auction := range *auctions { //TODO: check if auction is no longer live
 		for _, item := range auction.Items {
-			if item.Leading.UserID != userID {
+			if item.Leading.UserID == userID {
 				items = append(items, item)
 			}
 		}
