@@ -14,7 +14,7 @@ import (
 	"github.com/rs/xid"
 )
 
-var auctioneerRoot = "http://localhost:8080"
+var auctioneerRoot = "http://192.168.2.1:8080"
 var userIDRoot = "service_"
 var userID string
 var phases = 3
@@ -24,17 +24,17 @@ var phases = 3
 // var startPause = "10s"
 
 var stagePause = "5s"
-var phasePause = "10s"
-var bidPause = "2s"
+var phasePause = "7s"
+var bidPause = "0.5s"
 var minPause = 5
 var maxPause = 15
 
 var bidders = 1
 
 var locations = map[string]int{
-	"datacenter": 4,
-	"residence":  4,
-	"exchange":   4,
+	"datacenter": 22,
+	"residence":  6,
+	"exchange":   6,
 }
 
 func main() {
@@ -49,7 +49,7 @@ func startBidder() bool {
 	log.Printf("Bidder %v started.\n", userID)
 	randomiseLocationQuotas()
 	log.Printf("Quota is a follows: %v", locations)
-	auctions := fetchAuctions()
+	auctions := fetchAuctions(true)
 	items := determineTargetItems(auctions, locations)
 	bids := generateBids(items)
 	artificialSleep("", true)
@@ -62,7 +62,7 @@ func startBidder() bool {
 
 func randomiseLocationQuotas() {
 	for location, _ := range locations {
-		locations[location] = randomNumber(0, 5)
+		locations[location] = randomNumber(0, locations[location])
 	}
 }
 
@@ -113,7 +113,7 @@ func printBids(bids map[string]*auctioneer.Bid) {
 
 func printLeading() { //could also check against user_tag?
 	log.Println("Leading the following auctions:")
-	auctions := fetchAuctions()
+	auctions := fetchAuctions(true)
 	for _, auction := range auctions {
 		for _, item := range auction.Items {
 			if item.Leading.UserID == userID {
@@ -125,10 +125,17 @@ func printLeading() { //could also check against user_tag?
 
 func provisioningStage() {
 	log.Printf("Starting provisioning phase.\n")
-	auctions := fetchAuctions()
-	items := winningAuctions(&auctions)
-	provision(items)
-	log.Printf("Ending provisioning phase.\n")
+	auctions := fetchAuctions(false)
+	for {
+		if len(auctions) > 0 { //TODO: Only provisions the first auction
+			items := winningAuctions(&auctions)
+			provision(items)
+			log.Printf("Ending provisioning phase.\n")
+			return
+		}
+		time.Sleep(10 * time.Second)
+		auctions = fetchAuctions(false)
+	}
 }
 
 func provision(items []auctioneer.Item) {
@@ -164,10 +171,15 @@ func winningAuctions(auctions *[]auctioneer.Auction) []auctioneer.Item {
 	return items
 }
 
-func fetchAuctions() []auctioneer.Auction {
+func fetchAuctions(live bool) []auctioneer.Auction {
 	var auctions []auctioneer.Auction
 
-	path := auctioneerRoot + "/auction/live"
+	var path string
+	if live {
+		path = auctioneerRoot + "/auction/live"
+	} else {
+		path = auctioneerRoot + "/auction/expired"
+	}
 
 	resp, err := http.Get(path) //should the end point not be '/provision_docker_containers'?
 	if err != nil {
@@ -190,7 +202,8 @@ func determineTargetItems(auctions []auctioneer.Auction, locationCriterium map[s
 	var items []auctioneer.Item
 
 	for _, auction := range auctions {
-		for _, item := range auction.Items {
+		randomisedItems := randomiseTargetItems(auction.Items)
+		for _, item := range randomisedItems {
 			for location, quota := range locationCriterium {
 				if item.ParentNode.Location == location {
 					if quota > 0 {
@@ -203,6 +216,15 @@ func determineTargetItems(auctions []auctioneer.Auction, locationCriterium map[s
 	}
 
 	return items
+}
+
+func randomiseTargetItems(items []auctioneer.Item) []auctioneer.Item {
+	dest := make([]auctioneer.Item, len(items))
+	perm := rand.Perm(len(items))
+	for i, v := range perm {
+		dest[v] = items[i]
+	}
+	return dest
 }
 
 func generateBids(items []auctioneer.Item) map[string]*auctioneer.Bid {
@@ -225,7 +247,7 @@ func generateBids(items []auctioneer.Item) map[string]*auctioneer.Bid {
 
 func incrementBids(bids map[string]*auctioneer.Bid) {
 	for _, bid := range bids {
-		bid.Valuation += randomNumber(1, 5)
+		bid.Valuation = bid.Valuation + randomNumber(10, 20)
 	}
 }
 
