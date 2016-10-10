@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/broadbent/airship/auctioneer"
@@ -15,7 +15,7 @@ import (
 )
 
 var auctioneerRoot = "http://localhost:8080"
-var userIDRoot = "bidder_"
+var userIDRoot = "service_"
 var userID string
 var phases = 3
 
@@ -38,12 +38,15 @@ var locations = map[string]int{
 }
 
 func main() {
-	startBidder(randomNumber(1, 1000))
+	var userIDSuffix = flag.String("user", "a", "user ID suffice (a, b, c, etc.)")
+	flag.Parse()
+	userID = userIDRoot + *userIDSuffix
+
+	startBidder()
 }
 
-func startBidder(bidderNumber int) bool {
-	userID = userIDRoot + strconv.Itoa(bidderNumber)
-	log.Printf("Bidder %v started.\n", bidderNumber)
+func startBidder() bool {
+	log.Printf("Bidder %v started.\n", userID)
 	randomiseLocationQuotas()
 	log.Printf("Quota is a follows: %v", locations)
 	auctions := fetchAuctions()
@@ -73,7 +76,6 @@ func artificialSleep(duration string, random bool) {
 	}
 
 	time.Sleep(sleep)
-
 }
 
 func randomDuration(min, max int) time.Duration {
@@ -84,7 +86,6 @@ func randomDuration(min, max int) time.Duration {
 func randomNumber(min, max int) int {
 	rand.Seed(time.Now().UTC().UnixNano())
 	return rand.Intn(max-min) + min
-
 }
 
 func biddingStage(bids map[string]*auctioneer.Bid) {
@@ -124,10 +125,43 @@ func printLeading() { //could also check against user_tag?
 
 func provisioningStage() {
 	log.Printf("Starting provisioning phase.\n")
-	provision()
-	// check if finished
-	//call provision in won items
+	auctions := fetchAuctions()
+	winningAuctions(&auctions)
+	provision(&auctions)
 	log.Printf("Ending provisioning phase.\n")
+}
+
+func provision(auctions *[]auctioneer.Auction) {
+	for _, auction := range *auctions {
+		for i, item := range auction.Items {
+			if item.Leading.UserID != userID {
+				auction.Items = append(auction.Items[:i], auction.Items[i+1:]...)
+			}
+		}
+	}
+}
+
+func provisionItem(item auctioneer.Item) {
+	var provision auctioneer.Provision
+
+	provision.Nodes = []string{item.ParentNode.ID}
+	provision.ImageName = "lyndon160/" + userID
+	provision.Memory = item.Memory
+	provision.Hours = 1
+	provision.PortBindings = make(map[string]int)
+	provision.PortBindings["internal"] = 80
+
+	makePost(provision, "/provision")
+}
+
+func winningAuctions(auctions *[]auctioneer.Auction) {
+	for _, auction := range *auctions { //TODO: check if auction is no longer live
+		for i, item := range auction.Items {
+			if item.Leading.UserID != userID {
+				auction.Items = append(auction.Items[:i], auction.Items[i+1:]...)
+			}
+		}
+	}
 }
 
 func fetchAuctions() []auctioneer.Auction {
@@ -205,14 +239,20 @@ func executeBids(bids map[string]*auctioneer.Bid) {
 func executeBid(bid *auctioneer.Bid) {
 	log.Printf("Placing bid now: %v.\n", bid.UserTag)
 
-	post, err := json.Marshal(bid)
+	path := "/auction/bid"
+
+	makePost(bid, path)
+}
+
+func makePost(obj interface{}, path string) {
+	post, err := json.Marshal(obj)
 	if err != nil {
 		panic(err)
 	}
 
 	reader := bytes.NewReader(post)
 
-	path := auctioneerRoot + "/auction/bid"
+	path = auctioneerRoot + path
 
 	resp, err := http.Post(path, "application/json; charset=UTF-8", reader)
 
@@ -220,17 +260,4 @@ func executeBid(bid *auctioneer.Bid) {
 		panic(err)
 	}
 	defer resp.Body.Close()
-
-	// body, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// var item auctioneer.Item
-
-	// json.Unmarshal(body, &item)
-
-}
-func provision() {
-
 }
