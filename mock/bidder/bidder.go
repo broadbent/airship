@@ -126,18 +126,14 @@ func printLeading() { //could also check against user_tag?
 func provisioningStage() {
 	log.Printf("Starting provisioning phase.\n")
 	auctions := fetchAuctions()
-	winningAuctions(&auctions)
-	provision(&auctions)
+	items := winningAuctions(&auctions)
+	provision(items)
 	log.Printf("Ending provisioning phase.\n")
 }
 
-func provision(auctions *[]auctioneer.Auction) {
-	for _, auction := range *auctions {
-		for i, item := range auction.Items {
-			if item.Leading.UserID != userID {
-				auction.Items = append(auction.Items[:i], auction.Items[i+1:]...)
-			}
-		}
+func provision(items []auctioneer.Item) {
+	for _, item := range items {
+		provisionItem(item)
 	}
 }
 
@@ -154,14 +150,18 @@ func provisionItem(item auctioneer.Item) {
 	makePost(provision, "/provision")
 }
 
-func winningAuctions(auctions *[]auctioneer.Auction) {
+func winningAuctions(auctions *[]auctioneer.Auction) []auctioneer.Item {
+	var items []auctioneer.Item
+
 	for _, auction := range *auctions { //TODO: check if auction is no longer live
-		for i, item := range auction.Items {
+		for _, item := range auction.Items {
 			if item.Leading.UserID != userID {
-				auction.Items = append(auction.Items[:i], auction.Items[i+1:]...)
+				items = append(items, item)
 			}
 		}
 	}
+
+	return items
 }
 
 func fetchAuctions() []auctioneer.Auction {
