@@ -16,7 +16,7 @@ A more detailed tutorial and description are to follow.
 
 ## Install
 
-Airship is built in [golang](https://golang.org/).
+Airship is built in [`golang`](https://golang.org/).
 
 To fetch Airship, first fetch the respository:
 
