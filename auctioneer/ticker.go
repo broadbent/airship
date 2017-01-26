@@ -73,6 +73,7 @@ func readRequestBody(r *http.Request) (body []byte) {
 }
 
 func reset(a *appContext, c web.C, w http.ResponseWriter, r *http.Request) (int, error) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	a.reset <- true
 	return 200, nil
 }
